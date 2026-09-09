@@ -29,8 +29,9 @@ export default function PrintInvoice({ invoice, mode = "A4", onAfterPrint }) {
   const invoiceDate = invoice.date || (invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : new Date().toLocaleDateString());
   const referenceNumber = invoice.referenceNumber || invoice.salesOrderNumber || invoice.orderNumber || invoiceNumber;
   const customerName = invoice.customerName || invoice.customer || "Walk-in Customer";
-  const customerPhone = invoice.customerPhone || "";
-  const customerAddress = invoice.customerAddress || "";
+  const customerPhone = invoice.customerPhone || invoice.phone || "";
+  const customerEmail = invoice.customerEmail || invoice.email || "";
+  const customerAddress = invoice.customerAddress || invoice.address || "";
 
   const items = Array.isArray(invoice.items) && invoice.items.length > 0 ? invoice.items : [];
 
@@ -43,6 +44,8 @@ export default function PrintInvoice({ invoice, mode = "A4", onAfterPrint }) {
 
   const paymentStatus = (invoice.paymentStatus || (invoice.status === "COMPLETED" ? "PAID" : "PENDING")).toUpperCase();
   const paymentMethod = (invoice.paymentMethod || "CASH").toUpperCase();
+  const isPaid = paymentStatus === "PAID";
+  const isPending = paymentStatus === "PENDING";
 
   return (
     <>
