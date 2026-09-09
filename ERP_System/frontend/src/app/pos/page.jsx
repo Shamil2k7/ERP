@@ -831,13 +831,18 @@ export default function POSPage() {
           invoice={{
             invoiceNo: selectedReceipt.orderNumber,
             customer: selectedReceipt.customerName,
+            customerPhone: selectedReceipt.customerPhone || "",
+            customerEmail: selectedReceipt.customerEmail || "",
+            customerAddress: selectedReceipt.customerAddress || "",
             cashier: "Admin",
             date: selectedReceipt.date,
+            paymentStatus: "PAID",
             paymentMethod: selectedReceipt.paymentMethod,
             subTotal: selectedReceipt.totalAmount,
             discount: selectedReceipt.discountAmount || 0,
             tax: selectedReceipt.taxAmount || 0,
             total: selectedReceipt.netAmount,
+            paidAmount: selectedReceipt.netAmount,
             items: selectedReceipt.cart?.map(item => ({
               productName: item.name,
               quantity: item.qty,
