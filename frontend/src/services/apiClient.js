@@ -39,4 +39,19 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      const isAuthRoute = window.location.pathname.startsWith("/auth/");
+      if (!isAuthRoute) {
+        localStorage.removeItem("token");
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;
+
+

@@ -18,13 +18,10 @@ class SettingsService {
     const formattedData = {};
 
     if (updateData.companyPhone !== undefined && updateData.companyPhone !== null && String(updateData.companyPhone).trim() !== "") {
-      const cleaned = cleanPhoneNumber(updateData.companyPhone);
-      if (!validatePhoneNumber(cleaned, true)) {
-        throw new Error("Phone number must contain exactly 10 digits");
-      }
-      formattedData.companyPhone = cleaned;
+      const rawPhone = String(updateData.companyPhone).trim();
+      const cleaned = cleanPhoneNumber(rawPhone);
+      formattedData.companyPhone = (cleaned && cleaned.length === 10) ? cleaned : rawPhone;
     }
-
 
     // String fields
     const stringFields = [
@@ -32,7 +29,6 @@ class SettingsService {
       "legalName",
       "taxNumber",
       "companyEmail",
-      "companyPhone",
       "companyAddress",
       "currency",
       "currencySymbol",

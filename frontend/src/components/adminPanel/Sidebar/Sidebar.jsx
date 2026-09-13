@@ -42,6 +42,11 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [logoUrl, settings?.companyLogo, company?.logo]);
 
   useEffect(() => {
     fetchRestaurantsList();
@@ -247,19 +252,37 @@ export default function Sidebar({ isOpen, onClose }) {
     return isModuleEnabled(item.moduleCode);
   });
 
+  const effectiveCompanyName = company?.name || settings?.companyName || "ERP Cloud";
+  const effectiveLogoUrl =
+    logoUrl ||
+    (company?.logo
+      ? company.logo.startsWith("http")
+        ? company.logo
+        : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/uploads/${company.logo}`
+      : null);
+
   return (
     <aside className={`${styles.sidebar} ${isOpen ? styles.open : ""}`}>
       <div className={styles.logo}>
-        <div className={styles.logoBrand}>
-          {logoUrl ? (
+        <div className={styles.logoBrand} title={effectiveCompanyName}>
+          {effectiveLogoUrl && !logoError ? (
             <img
-              src={logoUrl}
-              alt={company?.name || settings?.companyName || "ERP Logo"}
+              src={effectiveLogoUrl}
+              alt={effectiveCompanyName}
               className={styles.logoImg}
+              onError={() => setLogoError(true)}
             />
           ) : (
-            <h2>{company?.name || settings?.companyName || "ERP Cloud"}</h2>
+            <div className={styles.logoFallback}>
+              {effectiveCompanyName.charAt(0).toUpperCase()}
+            </div>
           )}
+          <div className={styles.brandText}>
+            <h2 className={styles.companyTitle}>{effectiveCompanyName}</h2>
+            <span className={styles.companySubtitle}>
+              {company?.industry?.name || "Enterprise ERP"}
+            </span>
+          </div>
         </div>
         {onClose && (
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close menu">

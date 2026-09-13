@@ -31,6 +31,9 @@ const prisma = prismaInstance.$extends({
                   companyId: tenantId,
                 }
               });
+            } else if (operation === "update" || operation === "delete") {
+              // Prisma update/delete requires a strict WhereUniqueInput.
+              // Do not inject non-unique companyId into args.where to prevent schema validation errors.
             } else {
               args.where.companyId = tenantId;
             }

@@ -5,6 +5,10 @@ import {
   forgotPasswordService,
   verifyResetOTPService,
   resetPasswordService,
+  getMeService,
+  sendRegistrationOTP,
+  verifyRegistrationOTP,
+  signupService,
 } from "./auth.service.js";
 import { recordAuditLog } from "../audit/audit.service.js";
 
@@ -16,6 +20,15 @@ const login = async (req, res) => {
     const result = await loginService(login, password);
 
     if (result.success && result.user) {
+      if (result.token) {
+        res.cookie("token", result.token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+      }
+
       const timeStr = new Date().toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
@@ -45,6 +58,7 @@ const login = async (req, res) => {
     });
   }
 };
+
 
 // Change Password
 const changePassword = async (req, res) => {
@@ -165,11 +179,101 @@ const changeEmail = async (req, res) => {
   }
 };
 
+// Get current logged-in user profile (JWT protected)
+const getMe = async (req, res) => {
+  try {
+    const result = await getMeService(req.user);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Logout (clears JWT cookie)
+const logout = async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
+};
+
+// Send OTP for user registration
+const sendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await sendRegistrationOTP(email);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Verify OTP for user registration
+const verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const result = await verifyRegistrationOTP(email, otp);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Signup / Register New Account
+const signup = async (req, res) => {
+  try {
+    const { email, phone, password, employeeId, fullName } = req.body;
+    const result = await signupService({
+      email,
+      phone,
+      password,
+      employeeId,
+      fullName,
+    });
+
+    if (result.token) {
+      res.cookie("token", result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+    }
+
+    return res.status(201).json(result);
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export {
   login,
+  logout,
+  getMe,
+  sendOTP,
+  verifyOTP,
+  signup,
   changePassword,
   changeEmail,
   forgotPassword,
   verifyResetOTP,
   resetPassword,
-};
+};

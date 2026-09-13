@@ -2,6 +2,11 @@ import express from "express";
 
 import {
   login,
+  logout,
+  getMe,
+  sendOTP,
+  verifyOTP,
+  signup,
   changePassword,
   changeEmail,
   forgotPassword,
@@ -17,7 +22,10 @@ import {
   validateResetPassword,
 } from "./auth.validation.js";
 
+import { requireAuth } from "../../middlewares/auth.middleware.js";
+
 const router = express.Router();
+
 
 console.log("✅ Auth Routes Loaded");
 
@@ -71,4 +79,35 @@ router.post(
   resetPassword
 );
 
-export default router;
+// Get Current User Profile (JWT Authentication Required)
+router.get(
+  "/me",
+  requireAuth,
+  getMe
+);
+
+// Logout (Clears JWT Cookie)
+router.post(
+  "/logout",
+  logout
+);
+
+// Send Registration OTP
+router.post(
+  "/send-otp",
+  sendOTP
+);
+
+// Verify Registration OTP
+router.post(
+  "/verify-otp",
+  verifyOTP
+);
+
+// Signup / Register New Account
+router.post(
+  "/signup",
+  signup
+);
+
+export default router;

@@ -1,13 +1,11 @@
-import axios from "axios";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import apiClient from "./apiClient";
 
 // ==========================================
 // Get System Settings
 // ==========================================
 export async function getSettings() {
   try {
-    const response = await axios.get(`${API_URL}/api/settings`);
+    const response = await apiClient.get("/settings");
     return response.data.data;
   } catch (error) {
     console.warn("Settings API unavailable, using defaults:", error?.message || error);
@@ -19,12 +17,14 @@ export async function getSettings() {
 // Update System Settings
 // ==========================================
 export async function updateSettings(data) {
-  let headers = {};
-  if (!(data instanceof FormData)) {
+  const headers = {};
+  if (data instanceof FormData) {
+    headers["Content-Type"] = "multipart/form-data";
+  } else {
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await axios.put(`${API_URL}/api/settings`, data, { headers });
+  const response = await apiClient.put("/settings", data, { headers });
   return response.data;
 }
 
@@ -35,7 +35,9 @@ export async function uploadLogo(file) {
   const formData = new FormData();
   formData.append("companyLogo", file);
 
-  const response = await axios.post(`${API_URL}/api/settings/logo`, formData);
+  const response = await apiClient.post("/settings/logo", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return response.data;
 }
 
@@ -43,6 +45,7 @@ export async function uploadLogo(file) {
 // Reset Settings to Factory Defaults
 // ==========================================
 export async function resetSettings() {
-  const response = await axios.post(`${API_URL}/api/settings/reset`);
+  const response = await apiClient.post("/settings/reset");
   return response.data;
 }
+

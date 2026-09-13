@@ -1,21 +1,19 @@
-import axios from "axios";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import apiClient from "./apiClient";
 
 // ==============================
 // GET LANDING PAGE
 // ==============================
-
 export async function getLandingPage() {
-  const response = await axios.get(`${API_URL}/api/landing`);
+  const response = await apiClient.get("/landing");
   return response.data.data;
 }
 
 // ==============================
 // UPDATE LANDING PAGE
 // ==============================
-
 export async function updateLandingPage(formData) {
-  const response = await axios.put(`${API_URL}/api/landing`, formData);
+  const response = await apiClient.put("/landing", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return response.data;
-}
+}
