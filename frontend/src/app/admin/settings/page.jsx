@@ -204,7 +204,7 @@ export default function SettingsPage() {
         }
       }
     } catch (error) {
-      showToast("error", error.message || "Failed to load system settings.");
+      showToast("error", error.response?.data?.message || error.message || "Failed to load system settings.");
     } finally {
       setLoading(false);
     }
@@ -261,7 +261,7 @@ export default function SettingsPage() {
       setLogoFile(null);
       await refreshSettings();
     } catch (error) {
-      showToast("error", error.message || "Failed to save settings.");
+      showToast("error", error.response?.data?.message || error.message || "Failed to save settings.");
     } finally {
       setSaving(false);
     }
@@ -276,7 +276,7 @@ export default function SettingsPage() {
       await fetchSettingsData();
       await refreshSettings();
     } catch (error) {
-      showToast("error", error.message || "Failed to reset settings.");
+      showToast("error", error.response?.data?.message || error.message || "Failed to reset settings.");
     } finally {
       setResetting(false);
     }

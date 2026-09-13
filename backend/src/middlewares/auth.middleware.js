@@ -1,219 +1,271 @@
-import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
+import { verifyToken, extractToken } from "../config/jwt.js";
 
 /**
- * Middleware that extracts JWT token from Authorization header or cookies,
- * looks up the user in the DB with company relation, and attaches user info to `req.user`.
+ * Helper to resolve the authenticated user and their permissions/modules from a JWT token.
+ * @param {string} token
+ * @param {import("express").Request} req
+ * @returns {Promise<{ user: object, companyId: string|null, branchId: string|null } | null>}
+ */
+export const resolveUserFromToken = async (token, req = {}) => {
+  if (!token) return null;
+
+  const decoded = verifyToken(token);
+  if (!decoded || !decoded.id) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.id },
+    include: {
+      roleRef: true,
+      branch: true,
+      company: {
+        include: {
+          industry: true,
+          modules: {
+            include: {
+              module: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  const companyModules =
+    user.company?.modules
+      ?.filter((cm) => cm.enabled)
+      .map((cm) => cm.module.code) || [];
+
+  let userModules = companyModules;
+  if (user.permissions) {
+    try {
+      const parsed = JSON.parse(user.permissions);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        userModules = parsed;
+      }
+    } catch (e) {
+      if (typeof user.permissions === "string" && user.permissions.trim().length > 0) {
+        userModules = user.permissions.split(",").map((s) => s.trim().toUpperCase());
+      }
+    }
+  }
+
+  let overriddenCompanyId = user.companyId || user.company?.id || null;
+  let overriddenCompanyName = user.company?.name || "Default Company";
+  let overriddenBranchId = user.branchId;
+  let industryCode = (user.company?.industry?.code || user.type || "RETAIL").toUpperCase();
+  let industryName = user.company?.industry?.name || "Retail";
+
+  const roleName = (user.roleRef?.name || user.role || "ADMIN").trim();
+  const roleUpper = roleName.toUpperCase().replace(/\s+/g, "_");
+  const isSuper = roleUpper.includes("SUPER");
+
+  // Retail default role permissions automated mapping
+  if (industryCode.includes("RETAIL") && !isSuper && !roleUpper.includes("ADMIN") && !roleUpper.includes("SUPER")) {
+    if (roleUpper.includes("STORE_MANAGER") || roleUpper.includes("STORE_OPERATIONS")) {
+      userModules = [
+        "DASHBOARD",
+        "POS",
+        "BARCODE_PRINT",
+        "PRODUCTS",
+        "CATEGORIES",
+        "BRANDS",
+        "UNITS",
+        "INVENTORY",
+        "WAREHOUSE",
+        "STOCK_TRANSFER",
+        "CUSTOMERS",
+        "SUPPLIERS",
+        "PURCHASES",
+        "SALES",
+        "INVOICES",
+        "BRANCHES",
+        "EMPLOYEES",
+        "REPORTS",
+      ];
+    } else if (roleUpper === "CASHIER" || roleUpper.includes("CASHIER") || roleUpper.includes("BILLING")) {
+      userModules = ["DASHBOARD", "POS", "CUSTOMERS", "BARCODE_PRINT", "INVOICES", "SALES"];
+    } else if (roleUpper.includes("INVENTORY_MANAGER") || roleUpper.includes("WAREHOUSE_MANAGER")) {
+      userModules = [
+        "DASHBOARD",
+        "PRODUCTS",
+        "CATEGORIES",
+        "BRANDS",
+        "UNITS",
+        "BARCODE_PRINT",
+        "INVENTORY",
+        "WAREHOUSE",
+        "STOCK_TRANSFER",
+      ];
+    } else if (roleUpper.includes("PURCHASE_MANAGER") || roleUpper.includes("PROCUREMENT_MANAGER")) {
+      userModules = [
+        "DASHBOARD",
+        "PRODUCTS",
+        "CATEGORIES",
+        "BRANDS",
+        "UNITS",
+        "SUPPLIERS",
+        "PURCHASES",
+        "INVENTORY",
+        "WAREHOUSE",
+      ];
+    } else if (roleUpper.includes("ACCOUNTANT") || roleUpper.includes("FINANCE")) {
+      userModules = [
+        "DASHBOARD",
+        "POS_HISTORY",
+        "SALES",
+        "INVOICES",
+        "PURCHASES",
+        "CUSTOMERS",
+        "SUPPLIERS",
+        "REPORTS",
+      ];
+    }
+  }
+
+  // Laundry default role permissions fallback
+  if (industryCode.includes("LAUNDRY") && !isSuper && !roleUpper.includes("ADMIN")) {
+    const { getLaundryRoleModules } = await import("../config/laundryPermissions.js");
+    userModules = getLaundryRoleModules(roleUpper);
+  }
+
+  // Restaurant default role permissions fallback
+  if (industryCode.includes("RESTAURANT") && !isSuper && !roleUpper.includes("ADMIN")) {
+    if (roleUpper.includes("MANAGER")) {
+      userModules = [
+        "DASHBOARD",
+        "RESTAURANT",
+        "PRODUCTS",
+        "CATEGORIES",
+        "BRANDS",
+        "UNITS",
+        "INVENTORY",
+        "SUPPLIERS",
+        "EMPLOYEES",
+        "REPORTS",
+        "SETTINGS",
+      ];
+    } else if (roleUpper.includes("CASHIER")) {
+      userModules = ["DASHBOARD", "RESTAURANT", "POS", "SALES", "ORDERS", "CUSTOMERS", "INVOICES"];
+    } else if (roleUpper.includes("WAITER") || roleUpper.includes("STEWARD") || roleUpper.includes("SERVER")) {
+      userModules = ["RESTAURANT", "POS", "TABLES", "RESERVATIONS", "ORDERS"];
+    } else if (roleUpper.includes("KITCHEN") || roleUpper.includes("CHEF") || roleUpper.includes("COOK")) {
+      userModules = ["RESTAURANT", "KITCHEN", "KDS"];
+    }
+  }
+
+  if (isSuper) {
+    const clientCompanyHeader = req.headers?.["x-company-override"];
+    const clientBranchHeader = req.headers?.["x-branch-override"];
+
+    if (clientCompanyHeader) {
+      overriddenCompanyId = clientCompanyHeader;
+      const dbCompany = await prisma.company.findUnique({
+        where: { id: overriddenCompanyId },
+        include: {
+          industry: true,
+          modules: {
+            include: { module: true },
+          },
+        },
+      });
+
+      if (dbCompany) {
+        userModules = dbCompany.modules?.filter((cm) => cm.enabled).map((cm) => cm.module.code) || [];
+        industryCode = dbCompany.industry?.code || "RETAIL";
+        industryName = dbCompany.industry?.name || "Retail";
+        overriddenCompanyName = dbCompany.name;
+      }
+    }
+
+    if (clientBranchHeader) {
+      overriddenBranchId = clientBranchHeader;
+    }
+  }
+
+  const reqUser = {
+    id: user.id,
+    fullName: user.fullName || user.email,
+    email: user.email,
+    employeeId: user.employeeId,
+    role: roleName,
+    companyId: overriddenCompanyId,
+    companyName: overriddenCompanyName,
+    industryCode: industryCode,
+    industryName: industryName,
+    enabledModules: userModules,
+    permissions: user.permissions,
+    branchId: overriddenBranchId,
+  };
+
+  return {
+    user: reqUser,
+    companyId: overriddenCompanyId,
+    branchId: overriddenBranchId,
+  };
+};
+
+/**
+ * Strict JWT Authentication Middleware.
+ * Rejects requests without a valid token or user with 401 Unauthorized.
+ */
+export const requireAuth = async (req, res, next) => {
+  try {
+    const token = extractToken(req);
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: Access token is missing or required",
+      });
+    }
+
+    const context = await resolveUserFromToken(token, req);
+
+    if (!context || !context.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User not found or inactive",
+      });
+    }
+
+    req.user = context.user;
+    req.companyId = context.companyId;
+    req.tenantId = context.companyId;
+    req.branchId = context.branchId;
+
+    return next();
+  } catch (err) {
+    const isExpired = err.name === "TokenExpiredError";
+    return res.status(401).json({
+      success: false,
+      message: isExpired ? "Unauthorized: Token expired" : "Unauthorized: Invalid token",
+      error: err.message,
+    });
+  }
+};
+
+// Aliases for developer convenience
+export const authenticateToken = requireAuth;
+export const verifyJWT = requireAuth;
+
+/**
+ * Optional JWT authentication middleware.
+ * Attaches user context if valid token exists; continues non-blockingly otherwise.
  */
 export const attachUserIfAuthenticated = async (req, res, next) => {
   try {
-    let token = null;
-
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer ")
-    ) {
-      token = req.headers.authorization.split(" ")[1];
-    } else if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    }
+    const token = extractToken(req);
 
     if (token) {
-      const secret = process.env.JWT_SECRET || "supersecretkey";
-      const decoded = jwt.verify(token, secret);
-
-      if (decoded && decoded.id) {
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.id },
-          include: {
-            roleRef: true,
-            branch: true,
-            company: {
-              include: {
-                industry: true,
-                modules: {
-                  include: {
-                    module: true,
-                  },
-                },
-              },
-            },
-          },
-        });
-
-        if (user) {
-          const companyModules =
-            user.company?.modules
-              ?.filter((cm) => cm.enabled)
-              .map((cm) => cm.module.code) || [];
-
-          let userModules = companyModules;
-          if (user.permissions) {
-            try {
-              const parsed = JSON.parse(user.permissions);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                userModules = parsed;
-              }
-            } catch (e) {
-              if (typeof user.permissions === "string" && user.permissions.trim().length > 0) {
-                userModules = user.permissions.split(",").map((s) => s.trim().toUpperCase());
-              }
-            }
-          }
-
-          let overriddenCompanyId = user.companyId || user.company?.id || null;
-          let overriddenCompanyName = user.company?.name || "Default Company";
-          let overriddenBranchId = user.branchId;
-          let industryCode = (user.company?.industry?.code || user.type || "RETAIL").toUpperCase();
-          let industryName = user.company?.industry?.name || "Retail";
-
-          const roleName = (user.roleRef?.name || user.role || "ADMIN").trim();
-          const roleUpper = roleName.toUpperCase().replace(/\s+/g, "_");
-          const isSuper = roleUpper.includes("SUPER");
-
-          // Retail default role permissions automated mapping
-          if (industryCode.includes("RETAIL") && !isSuper && !roleUpper.includes("ADMIN") && !roleUpper.includes("SUPER")) {
-            if (roleUpper.includes("STORE_MANAGER") || roleUpper.includes("STORE_OPERATIONS")) {
-              userModules = [
-                "DASHBOARD",
-                "POS",
-                "BARCODE_PRINT",
-                "PRODUCTS",
-                "CATEGORIES",
-                "BRANDS",
-                "UNITS",
-                "INVENTORY",
-                "WAREHOUSE",
-                "STOCK_TRANSFER",
-                "CUSTOMERS",
-                "SUPPLIERS",
-                "PURCHASES",
-                "SALES",
-                "INVOICES",
-                "BRANCHES",
-                "EMPLOYEES",
-                "REPORTS",
-              ];
-            } else if (roleUpper === "CASHIER" || roleUpper.includes("CASHIER") || roleUpper.includes("BILLING")) {
-              userModules = ["DASHBOARD", "POS", "CUSTOMERS", "BARCODE_PRINT", "INVOICES", "SALES"];
-            } else if (roleUpper.includes("INVENTORY_MANAGER") || roleUpper.includes("WAREHOUSE_MANAGER")) {
-              userModules = [
-                "DASHBOARD",
-                "PRODUCTS",
-                "CATEGORIES",
-                "BRANDS",
-                "UNITS",
-                "BARCODE_PRINT",
-                "INVENTORY",
-                "WAREHOUSE",
-                "STOCK_TRANSFER",
-              ];
-            } else if (roleUpper.includes("PURCHASE_MANAGER") || roleUpper.includes("PROCUREMENT_MANAGER")) {
-              userModules = [
-                "DASHBOARD",
-                "PRODUCTS",
-                "CATEGORIES",
-                "BRANDS",
-                "UNITS",
-                "SUPPLIERS",
-                "PURCHASES",
-                "INVENTORY",
-                "WAREHOUSE",
-              ];
-            } else if (roleUpper.includes("ACCOUNTANT") || roleUpper.includes("FINANCE")) {
-              userModules = [
-                "DASHBOARD",
-                "POS_HISTORY",
-                "SALES",
-                "INVOICES",
-                "PURCHASES",
-                "CUSTOMERS",
-                "SUPPLIERS",
-                "REPORTS",
-              ];
-            }
-          }
-
-          // Laundry default role permissions fallback
-          if (industryCode.includes("LAUNDRY") && !isSuper && !roleUpper.includes("ADMIN")) {
-            const { getLaundryRoleModules } = await import("../config/laundryPermissions.js");
-            userModules = getLaundryRoleModules(roleUpper);
-          }
-
-          // Restaurant default role permissions fallback
-          if (industryCode.includes("RESTAURANT") && !isSuper && !roleUpper.includes("ADMIN")) {
-            if (roleUpper.includes("MANAGER")) {
-              userModules = [
-                "DASHBOARD",
-                "RESTAURANT",
-                "PRODUCTS",
-                "CATEGORIES",
-                "BRANDS",
-                "UNITS",
-                "INVENTORY",
-                "SUPPLIERS",
-                "EMPLOYEES",
-                "REPORTS",
-                "SETTINGS",
-              ];
-            } else if (roleUpper.includes("CASHIER")) {
-              userModules = ["DASHBOARD", "RESTAURANT", "POS", "SALES", "ORDERS", "CUSTOMERS", "INVOICES"];
-            } else if (roleUpper.includes("WAITER") || roleUpper.includes("STEWARD") || roleUpper.includes("SERVER")) {
-              userModules = ["RESTAURANT", "POS", "TABLES", "RESERVATIONS", "ORDERS"];
-            } else if (roleUpper.includes("KITCHEN") || roleUpper.includes("CHEF") || roleUpper.includes("COOK")) {
-              userModules = ["RESTAURANT", "KITCHEN", "KDS"];
-            }
-          }
-
-
-          if (isSuper) {
-            const clientCompanyHeader = req.headers["x-company-override"];
-            const clientBranchHeader = req.headers["x-branch-override"];
-
-            if (clientCompanyHeader) {
-              overriddenCompanyId = clientCompanyHeader;
-              // Fetch overridden company modules
-              const dbCompany = await prisma.company.findUnique({
-                where: { id: overriddenCompanyId },
-                include: {
-                  industry: true,
-                  modules: {
-                    include: { module: true },
-                  },
-                },
-              });
-
-              if (dbCompany) {
-                userModules = dbCompany.modules?.filter((cm) => cm.enabled).map((cm) => cm.module.code) || [];
-                industryCode = dbCompany.industry?.code || "RETAIL";
-                industryName = dbCompany.industry?.name || "Retail";
-                overriddenCompanyName = dbCompany.name;
-              }
-            }
-
-            if (clientBranchHeader) {
-              overriddenBranchId = clientBranchHeader;
-            }
-          }
-
-          req.user = {
-            id: user.id,
-            fullName: user.fullName || user.email,
-            email: user.email,
-            employeeId: user.employeeId,
-            role: roleName,
-            companyId: overriddenCompanyId,
-            companyName: overriddenCompanyName,
-            industryCode: industryCode,
-            industryName: industryName,
-            enabledModules: userModules,
-            permissions: user.permissions,
-            branchId: overriddenBranchId,
-          };
-          req.companyId = req.user.companyId;
-          req.tenantId = req.user.companyId;
-          req.branchId = overriddenBranchId;
-        }
+      const context = await resolveUserFromToken(token, req);
+      if (context && context.user) {
+        req.user = context.user;
+        req.companyId = context.companyId;
+        req.tenantId = context.companyId;
+        req.branchId = context.branchId;
       }
     }
   } catch (err) {

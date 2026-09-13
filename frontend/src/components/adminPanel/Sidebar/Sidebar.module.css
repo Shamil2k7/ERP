@@ -24,11 +24,11 @@
 }
 
 .logo {
-  height: 72px;
+  height: 74px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 16px;
   border-bottom: 1px solid #dbeafe;
   background: #f0f7ff;
 }
@@ -36,27 +36,77 @@
 .logoBrand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: 180px;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
+  text-decoration: none;
 }
 
 .logoImg {
-  max-height: 44px;
-  max-width: 160px;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  max-width: 42px;
+  max-height: 42px;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 3px;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 1px 4px rgba(30, 58, 138, 0.08);
+  flex-shrink: 0;
 }
 
+.logoFallback {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  flex-shrink: 0;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  justify-content: center;
+}
+
+.companyTitle,
 .logo h2 {
   color: #1e3a8a;
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
+  line-height: 1.25;
+  margin: 0;
 }
+
+.companySubtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
 
 
 .closeBtn {

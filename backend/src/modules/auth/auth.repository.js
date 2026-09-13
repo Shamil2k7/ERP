@@ -94,12 +94,59 @@ const updateEmail = async (currentEmail, newEmail) => {
   });
 };
 
+// Find User By Phone
+const findUserByPhone = async (phone) => {
+  const cleanPhone = (phone || "").trim();
+  return await prisma.user.findFirst({
+    where: { phone: cleanPhone },
+  });
+};
+
+// Find User By Employee ID
+const findUserByEmployeeId = async (employeeId) => {
+  const cleanEmpId = (employeeId || "").trim();
+  return await prisma.user.findFirst({
+    where: { employeeId: cleanEmpId },
+  });
+};
+
+// Create User
+const createUser = async (userData) => {
+  return await prisma.user.create({
+    data: userData,
+    include: {
+      roleRef: true,
+      branch: true,
+      company: {
+        include: {
+          industry: true,
+          modules: {
+            include: { module: true },
+          },
+        },
+      },
+    },
+  });
+};
+
+// Get First Active Company (fallback for initial company association)
+const findFirstCompany = async () => {
+  return await prisma.company.findFirst({
+    where: { status: "ACTIVE" },
+    include: { industry: true },
+  });
+};
+
 export {
   findUserByLogin,
   findUserByEmail,
+  findUserByPhone,
+  findUserByEmployeeId,
+  createUser,
+  findFirstCompany,
   saveOTP,
   findOTPByEmail,
   markOTPAsUsed,
   updatePassword,
   updateEmail,
-};
+};

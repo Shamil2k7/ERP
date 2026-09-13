@@ -8,6 +8,10 @@ import { DEFAULT_INDUSTRY_MODULES } from "../../config/industries.js";
 import {
   findUserByLogin,
   findUserByEmail,
+  findUserByPhone,
+  findUserByEmployeeId,
+  createUser,
+  findFirstCompany,
   saveOTP,
   findOTPByEmail,
   markOTPAsUsed,
@@ -36,7 +40,15 @@ const loginService = async (login, password) => {
     throw new Error("Please verify your email first");
   }
 
-  const token = generateToken(employee.id);
+  const rawRole = (employee.roleRef?.name || employee.role || "Employee").trim();
+  const normalizedRole = rawRole.toUpperCase().replace(/\s+/g, "_");
+
+  const token = generateToken({
+    id: employee.id,
+    email: employee.email,
+    role: normalizedRole,
+    companyId: employee.companyId || employee.company?.id || null,
+  });
 
   const rawCodeUpper = (
     employee.company?.industry?.code || employee.type || "RETAIL"
@@ -76,10 +88,8 @@ const loginService = async (login, password) => {
     }
   }
 
-  const rawRole = (employee.roleRef?.name || employee.role || "Employee").trim();
-  const normalizedRole = rawRole.toUpperCase().replace(/\s+/g, "_");
-
   // If Laundry industry, apply strictly role-based permissions
+
   if (industryCodeUpper === "LAUNDRY" && !normalizedRole.includes("SUPER") && !normalizedRole.includes("ADMIN")) {
     const { getLaundryRoleModules } = await import("../../config/laundryPermissions.js");
     enabledModuleCodes = getLaundryRoleModules(normalizedRole);
@@ -308,6 +318,164 @@ const changeEmailService = async (currentEmail, password, newEmail) => {
   };
 };
 
+// Get Current User Profile
+const getMeService = async (user) => {
+  if (!user) {
+    throw new Error("User context not found");
+  }
+
+  return {
+    success: true,
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      employeeId: user.employeeId,
+      role: user.role,
+      companyId: user.companyId,
+      branchId: user.branchId,
+      type: user.industryCode || "RETAIL",
+    },
+    company: {
+      id: user.companyId,
+      name: user.companyName,
+      industry: {
+        code: user.industryCode,
+        name: user.industryName,
+      },
+    },
+    modules: user.enabledModules || [],
+    permissions: user.permissions || [],
+  };
+};
+
+// Send Registration OTP
+const sendRegistrationOTP = async (email) => {
+  const cleanEmail = (email || "").trim().toLowerCase();
+  if (!cleanEmail) {
+    throw new Error("Email is required");
+  }
+
+  const existing = await findUserByEmail(cleanEmail);
+  if (existing) {
+    throw new Error("An account with this email already exists");
+  }
+
+  const otp = crypto.randomInt(100000, 999999).toString();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  await saveOTP({
+    email: cleanEmail,
+    otp,
+    expiresAt,
+  });
+
+  await sendOTPEmail(cleanEmail, otp);
+
+  return {
+    success: true,
+    message: "Verification OTP sent to your email",
+  };
+};
+
+// Verify Registration OTP
+const verifyRegistrationOTP = async (email, otp) => {
+  const cleanEmail = (email || "").trim().toLowerCase();
+  const cleanOtp = (otp || "").trim();
+
+  const savedOTP = await findOTPByEmail(cleanEmail);
+  if (!savedOTP) {
+    throw new Error("No pending OTP found for this email");
+  }
+
+  if (savedOTP.isUsed) {
+    throw new Error("OTP already used");
+  }
+
+  if (savedOTP.expiresAt < new Date()) {
+    throw new Error("OTP has expired. Please request a new one");
+  }
+
+  if (savedOTP.otp !== cleanOtp) {
+    throw new Error("Invalid OTP");
+  }
+
+  await markOTPAsUsed(savedOTP.id);
+
+  return {
+    success: true,
+    message: "Email verified successfully",
+  };
+};
+
+// Signup / Register New User
+const signupService = async ({ email, phone, password, employeeId, fullName }) => {
+  const cleanEmail = (email || "").trim().toLowerCase();
+  const cleanPhone = (phone || "").trim();
+  const cleanEmpId = employeeId ? employeeId.trim() : null;
+
+  if (!cleanEmail || !password) {
+    throw new Error("Email and password are required");
+  }
+
+  const existingEmail = await findUserByEmail(cleanEmail);
+  if (existingEmail) {
+    throw new Error("An account with this email already exists");
+  }
+
+  if (cleanPhone) {
+    const existingPhone = await findUserByPhone(cleanPhone);
+    if (existingPhone) {
+      throw new Error("Phone number already in use");
+    }
+  }
+
+  if (cleanEmpId) {
+    const existingEmp = await findUserByEmployeeId(cleanEmpId);
+    if (existingEmp) {
+      throw new Error("Employee ID already in use");
+    }
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const defaultCompany = await findFirstCompany();
+
+  const newUser = await createUser({
+    email: cleanEmail,
+    phone: cleanPhone || `N/A-${Date.now()}`,
+    passwordHash,
+    employeeId: cleanEmpId,
+    fullName: fullName || cleanEmail.split("@")[0],
+    isVerified: true,
+    role: "EMPLOYEE",
+    type: defaultCompany?.industry?.code || "RETAIL",
+    companyId: defaultCompany?.id || null,
+  });
+
+  const token = generateToken({
+    id: newUser.id,
+    email: newUser.email,
+    role: newUser.role || "EMPLOYEE",
+    companyId: newUser.companyId || null,
+  });
+
+  return {
+    success: true,
+    message: "Account registered successfully",
+    token,
+    user: {
+      id: newUser.id,
+      fullName: newUser.fullName,
+      email: newUser.email,
+      employeeId: newUser.employeeId,
+      phone: newUser.phone,
+      role: newUser.role,
+      type: newUser.type,
+      companyId: newUser.companyId,
+    },
+  };
+};
+
 export {
   loginService,
   changePasswordService,
@@ -315,4 +483,8 @@ export {
   forgotPasswordService,
   verifyResetOTPService,
   resetPasswordService,
-};
+  getMeService,
+  sendRegistrationOTP,
+  verifyRegistrationOTP,
+  signupService,
+};
