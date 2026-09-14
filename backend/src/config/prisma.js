@@ -1,7 +1,17 @@
 import { PrismaClient } from "@prisma/client";
 import { AsyncLocalStorage } from "async_hooks";
 
-const prismaInstance = new PrismaClient();
+const globalForPrisma = globalThis;
+const prismaInstance =
+  globalForPrisma.prismaInstance ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prismaInstance = prismaInstance;
+}
+
 export const tenantStorage = new AsyncLocalStorage();
 
 const prisma = prismaInstance.$extends({
