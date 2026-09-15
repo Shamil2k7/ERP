@@ -285,7 +285,7 @@ export default function AddRetailProductPage() {
         const res = await apiClient.get("/brands");
         rawBrand = res.data;
       } catch (e) {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/brands`);
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/brands`);
         rawBrand = res.data;
       }
       const brandList = Array.isArray(rawBrand?.data)
@@ -318,7 +318,7 @@ export default function AddRetailProductPage() {
           status: "ACTIVE",
         });
       } catch (e) {
-        res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/brands`, {
+        res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/brands`, {
           name: newBrandName.trim(),
           status: "ACTIVE",
         });

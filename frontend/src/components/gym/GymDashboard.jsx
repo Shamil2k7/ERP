@@ -28,7 +28,7 @@ export default function GymDashboard() {
     const fetchGymStats = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/dashboard/stats`, {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/dashboard/stats`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

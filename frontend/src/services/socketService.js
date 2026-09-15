@@ -20,7 +20,7 @@ const getBackendUrl = () => {
     const host = window.location.hostname || "localhost";
     return `http://${host}:5000`;
   }
-  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  return process.env.NEXT_PUBLIC_API_URL;
 };
 
 export const getSocket = () => {

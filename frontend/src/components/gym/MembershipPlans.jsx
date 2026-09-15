@@ -35,7 +35,7 @@ export default function MembershipPlans() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/plans`, {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/plans`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -97,13 +97,13 @@ export default function MembershipPlans() {
 
       if (editingPlan) {
         await axios.put(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/plans/${editingPlan.id}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/api/gym/plans/${editingPlan.id}`,
           formData,
           { headers }
         );
         toast.success("Plan updated");
       } else {
-        await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/plans`, formData, { headers });
+        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/plans`, formData, { headers });
         toast.success("Plan created successfully");
       }
 
@@ -125,7 +125,7 @@ export default function MembershipPlans() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/plans/${id}`, {
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/plans/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Plan deleted");

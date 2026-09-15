@@ -108,7 +108,7 @@ export default function POSPage() {
             imageUrl: p.image
               ? p.image.startsWith("http")
                 ? p.image
-                : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${p.image.startsWith("/") ? "" : "/"}${p.image}`
+                : `${process.env.NEXT_PUBLIC_API_URL}${p.image.startsWith("/") ? "" : "/"}${p.image}`
               : "",
           };
         });
@@ -225,7 +225,7 @@ export default function POSPage() {
           imageUrl: p.image
             ? p.image.startsWith("http")
               ? p.image
-              : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${p.image.startsWith("/") ? "" : "/"}${p.image}`
+              : `${process.env.NEXT_PUBLIC_API_URL}${p.image.startsWith("/") ? "" : "/"}${p.image}`
             : "",
         };
         addToCart(mapped);
@@ -275,7 +275,7 @@ export default function POSPage() {
             imageUrl: p.image
               ? p.image.startsWith("http")
                 ? p.image
-                : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${p.image.startsWith("/") ? "" : "/"}${p.image}`
+                : `${process.env.NEXT_PUBLIC_API_URL}${p.image.startsWith("/") ? "" : "/"}${p.image}`
               : "",
           };
           addToCart(mapped);

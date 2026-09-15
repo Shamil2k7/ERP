@@ -234,7 +234,7 @@ export default function EditProductPage({ params }) {
             setImagePreview(
               p.image.startsWith("http")
                 ? p.image
-                : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${p.image.startsWith("/") ? "" : "/"}${p.image}`
+                : `${process.env.NEXT_PUBLIC_API_URL}${p.image.startsWith("/") ? "" : "/"}${p.image}`
             );
           }
         }

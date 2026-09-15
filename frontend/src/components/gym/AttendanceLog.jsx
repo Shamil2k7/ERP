@@ -30,8 +30,8 @@ export default function AttendanceLog() {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [attRes, memRes] = await Promise.all([
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/attendance?date=${dateFilter}`, { headers }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/members`, { headers }),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/attendance?date=${dateFilter}`, { headers }),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/members`, { headers }),
       ]);
 
       if (attRes.data.success) setAttendance(attRes.data.data || []);
@@ -60,7 +60,7 @@ export default function AttendanceLog() {
       const now = new Date();
 
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/attendance`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/gym/attendance`,
         {
           memberId: selectedMemberId,
           date: dateFilter,
@@ -84,7 +84,7 @@ export default function AttendanceLog() {
       const now = new Date();
 
       await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/attendance/${attendanceId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/gym/attendance/${attendanceId}`,
         { checkOutTime: now.toISOString() },
         { headers: { Authorization: `Bearer ${token}` } }
       );

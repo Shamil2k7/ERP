@@ -43,9 +43,9 @@ export default function GymPayments() {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [payRes, memRes, planRes] = await Promise.all([
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/payments`, { headers }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/members`, { headers }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/plans`, { headers }),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/payments`, { headers }),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/members`, { headers }),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/plans`, { headers }),
       ]);
 
       if (payRes.data.success) setPayments(payRes.data.data || []);
@@ -104,7 +104,7 @@ export default function GymPayments() {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/payments`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/gym/payments`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );

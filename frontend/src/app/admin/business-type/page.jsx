@@ -21,7 +21,7 @@ import {
 import styles from "../add-admin/addAdmin.module.css";
 import { useAlert } from "@/context/AlertContext";
 
-const API_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/business-types`;
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/business-types`;
 
 export default function BusinessTypePage() {
   const [businessTypes, setBusinessTypes] = useState([]);

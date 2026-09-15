@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import styles from "./profile.module.css";
 
-const API = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth`;
+const API = `${process.env.NEXT_PUBLIC_API_URL}/api/auth`;
 
 /* ─── tiny helpers ─── */
 function Alert({ type, msg }) {

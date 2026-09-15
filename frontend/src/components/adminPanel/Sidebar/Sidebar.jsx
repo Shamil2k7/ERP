@@ -258,7 +258,7 @@ export default function Sidebar({ isOpen, onClose }) {
     (company?.logo
       ? company.logo.startsWith("http")
         ? company.logo
-        : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/uploads/${company.logo}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/uploads/${company.logo}`
       : null);
 
   return (

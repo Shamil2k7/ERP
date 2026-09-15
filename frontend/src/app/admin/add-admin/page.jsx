@@ -84,7 +84,7 @@ export default function AddAdminPage() {
     const fetchModules = async () => {
       try {
         const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/companies/default-modules/${formData.type}`
+          `${process.env.NEXT_PUBLIC_API_URL}/api/companies/default-modules/${formData.type}`
         );
         if (res.data.success && res.data.data) {
           setAvailableModules(res.data.data);

@@ -7,7 +7,7 @@ import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import styles from "./ForgotPasswordForm.module.css";
 import { useAlert } from "@/context/AlertContext";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ForgotPasswordForm() {
   const { showSuccess } = useAlert();

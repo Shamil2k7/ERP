@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/audit`;
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/audit`;
 
 export const getAuditLogs = async (params = {}) => {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;

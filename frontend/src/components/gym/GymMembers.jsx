@@ -65,10 +65,10 @@ export default function GymMembers() {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [membersRes, plansRes, trainersRes, branchesRes] = await Promise.all([
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/members`, { headers }).catch(() => ({ data: { success: true, data: [] } })),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/plans`, { headers }).catch(() => ({ data: { success: true, data: [] } })),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/trainers`, { headers }).catch(() => ({ data: { success: true, data: [] } })),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/branches`, { headers }).catch(() => ({ data: { data: [] } })),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/members`, { headers }).catch(() => ({ data: { success: true, data: [] } })),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/plans`, { headers }).catch(() => ({ data: { success: true, data: [] } })),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/trainers`, { headers }).catch(() => ({ data: { success: true, data: [] } })),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/branches`, { headers }).catch(() => ({ data: { data: [] } })),
       ]);
 
       if (membersRes.data.success) setMembers(membersRes.data.data || []);
@@ -186,13 +186,13 @@ export default function GymMembers() {
 
       if (editingMember) {
         await axios.put(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/members/${editingMember.id}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/api/gym/members/${editingMember.id}`,
           formData,
           { headers }
         );
         toast.success("Member updated successfully");
       } else {
-        await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/members`, formData, { headers });
+        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/members`, formData, { headers });
         toast.success("Member created successfully! Login password is their phone number.");
       }
 
@@ -219,7 +219,7 @@ export default function GymMembers() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/gym/members/${id}`, {
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/gym/members/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Member deleted");

@@ -197,7 +197,7 @@ export default function ViewProductPage({ params }) {
               <h2>Product Image</h2>
               {product.image ? (
                 <img
-                  src={product.image.startsWith('http') ? product.image : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${product.image.startsWith('/') ? '' : '/'}${product.image}`}
+                  src={product.image.startsWith('http') ? product.image : `${process.env.NEXT_PUBLIC_API_URL}${product.image.startsWith('/') ? '' : '/'}${product.image}`}
                   alt={product.name}
                   className={styles.imagePreview}
                 />

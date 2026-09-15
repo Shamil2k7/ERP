@@ -468,7 +468,7 @@ export default function ProductsPage() {
       return image;
     }
 
-    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${
+    return `${process.env.NEXT_PUBLIC_API_URL}${
       image.startsWith("/") ? "" : "/"
     }${image}`;
   };
